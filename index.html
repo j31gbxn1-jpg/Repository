@@ -30,7 +30,7 @@ body{background-color:#f7f8fa;padding:16px;color:#333;max-width:750px;margin:0 a
   <div class="card">
     <div class="title">新增硬件配件</div>
     <select id="typeSelect" class="input">
-      <option value="板U">板U</option>
+      <option value="主板">主板</option>
       <option value="显卡">显卡</option>
       <option value="内存">内存</option>
       <option value="固态">固态</option>
@@ -286,6 +286,58 @@ window.onload = function() {
   renderList();
   calcSuiteTotal();
 };
+</script>
+<!-- 硬件搜索区域 -->
+<div style="margin:20px 0;">
+  <input 
+    type="text" 
+    id="hardware-model" 
+    placeholder="输入硬件型号，例如 RTX 4070"
+    style="padding:8px; width:300px; font-size:16px;"
+  >
+  <button 
+    onclick="searchPrice()"
+    style="padding:8px 16px; font-size:16px; cursor:pointer;"
+  >
+    查询实时价格
+  </button>
+</div>
+
+<!-- 价格显示区域 -->
+<div style="margin:20px 0; font-size:18px;">
+  实时价格：<span id="price-display" style="color:#e53e3e; font-weight:bold;">等待查询...</span>
+</div>
+<script>
+// 调用 Vercel Serverless 接口，获取价格并渲染页面
+async function searchPrice() {
+  // 1. 获取输入框里的硬件型号
+  const inputEl = document.getElementById('hardware-model');
+  const priceEl = document.getElementById('price-display');
+  const model = inputEl.value.trim();
+
+  if (!model) {
+    priceEl.innerText = '请输入硬件型号！';
+    return;
+  }
+
+  try {
+    priceEl.innerText = '查询中...';
+    // 2. 请求后端 /api/price 接口，带上型号参数
+    const response = await fetch(`/api/price?model=${encodeURIComponent(model)}`);
+
+    if (!response.ok) throw new Error('接口请求失败');
+
+    // 3. 读取返回的 JSON 数据
+    const data = await response.json();
+
+    // 4. 把价格显示到页面上
+    priceEl.innerText = `${data.price} 元 (型号：${data.model})`;
+
+  } catch (error) {
+    console.error(error);
+    priceEl.innerText = '查询失败，请稍后重试';
+  }
+}
 </script>
 </body>
 </html>
