@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电脑硬件全平台比价工具</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, -apple-system, sans-serif;}
+body{background-color:#f7f8fa;padding:16px;color:#333;max-width:750px;margin:0 auto;}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+.title{font-size:20px;font-weight:bold;margin-bottom:16px;color:#222;}
+.input{width:100%;height:44px;border:1px solid #eee;border-radius:8px;padding:0 12px;margin:8px 0;font-size:16px;}
+.btn{padding:10px 16px;border:none;border-radius:8px;font-size:16px;margin:6px 4px;cursor:pointer;}
+.btn-primary{background:#007aff;color:#fff;}
+.btn-success{background:#36c66c;color:#fff;}
+.btn-danger{background:#ff3b30;color:#fff;}
+.btn-default{background:#eee;color:#333;}
+.tag{background:#e8f4ff;color:#007aff;padding:4px 10px;border-radius:6px;font-size:13px;margin-right:8px;}
+.item{border:1px solid #eee;border-radius:12px;padding:16px;margin-bottom:12px;}
+.item-top{display:flex;align-items:center;margin-bottom:8px;}
+.price-row{display:flex;flex-wrap:wrap;gap:8px;font-size:14px;color:#555;margin:10px 0;}
+.best-text{color:#ff3b30;font-weight:bold;margin:8px 0;}
+.suite-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:15px;}
+.total-row{padding:8px 0;font-size:16px;}
+.best-total{color:#ff3b30;font-weight:bold;}
+.empty{text-align:center;color:#999;padding:24px 0;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">新增硬件配件</div>
+    <select id="typeSelect" class="input">
+      <option value="板U">板U</option>
+      <option value="显卡">显卡</option>
+      <option value="内存">内存</option>
+      <option value="固态">固态</option>
+      <option value="散热">散热</option>
+      <option value="电源">电源</option>
+      <option value="机箱">机箱</option>
+      <option value="外设">外设</option>
+    </select>
+    <input class="input" id="nameInput" placeholder="配件完整型号" />
+    <input class="input" id="tmallInput" placeholder="天猫价格" type="number" step="0.01" />
+    <input class="input" id="taobaoInput" placeholder="淘宝价格" type="number" step="0.01" />
+    <input class="input" id="jdInput" placeholder="京东自营价格" type="number" step="0.01" />
+    <input class="input" id="pddInput" placeholder="拼多多价格" type="number" step="0.01" />
+    <input class="input" id="douyinInput" placeholder="抖音商城价格" type="number" step="0.01" />
+    <input class="input" id="remarkInput" placeholder="备注信息" />
+    <button class="btn btn-primary" onclick="addHardware()">保存配件</button>
+  </div>
+
+  <div class="card">
+    <div class="title">筛选搜索</div>
+    <input class="input" id="searchInput" placeholder="搜索配件型号" oninput="renderList()" />
+    <select id="filterType" class="input" onchange="renderList()">
+      <option value="all">全部分类</option>
+      <option value="板U">板U</option>
+      <option value="显卡">显卡</option>
+      <option value="内存">内存</option>
+      <option value="固态">固态</option>
+      <option value="散热">散热</option>
+      <option value="电源">电源</option>
+      <option value="机箱">机箱</option>
+      <option value="外设">外设</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="title">配件比价列表</div>
+    <div id="hardwareList"></div>
+  </div>
+
+  <div class="card">
+    <div class="title">整机套装汇总</div>
+    <div id="suiteList"></div>
+    <div id="totalInfo"></div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-success" onclick="exportCSV()">导出CSV表格</button>
+      <button class="btn btn-default" onclick="clearSuite()">清空整机</button>
+      <button class="btn btn-danger" onclick="clearAllData()">清空全部数据</button>
+    </div>
+  </div>
+
+<script>
+// 全局变量
+let hardwareList = JSON.parse(localStorage.getItem('hardwareList')) || [];
+let selectedIds = [];
+
+// 保存数据到本地
+function saveData() {
+  localStorage.setItem('hardwareList', JSON.stringify(hardwareList));
+}
+
+// 新增配件
+function addHardware() {
+  const type = document.getElementById('typeSelect').value;
+  const name = document.getElementById('nameInput').value.trim();
+  const tmall = parseFloat(document.getElementById('tmallInput').value) || 0;
+  const taobao = parseFloat(document.getElementById('taobaoInput').value) || 0;
+  const jd = parseFloat(document.getElementById('jdInput').value) || 0;
+  const pdd = parseFloat(document.getElementById('pddInput').value) || 0;
+  const douyin = parseFloat(document.getElementById('douyinInput').value) || 0;
+  const remark = document.getElementById('remarkInput').value.trim();
+
+  if (!name) {
+    alert('请填写配件型号');
+    return;
+  }
+  const id = Date.now().toString();
+  hardwareList.push({id, type, name, tmall, taobao, jd, pdd, douyin, remark});
+  saveData();
+  // 清空输入框
+  document.getElementById('nameInput').value = '';
+  document.getElementById('tmallInput').value = '';
+  document.getElementById('taobaoInput').value = '';
+  document.getElementById('jdInput').value = '';
+  document.getElementById('pddInput').value = '';
+  document.getElementById('douyinInput').value = '';
+  document.getElementById('remarkInput').value = '';
+  renderList();
+  calcSuiteTotal();
+}
+
+// 计算单品最低价&渠道
+function calcMinPrice(item) {
+  const priceObj = {
+    '天猫': item.tmall || 999999,
+    '淘宝': item.taobao || 999999,
+    '京东自营': item.jd || 999999,
+    '拼多多': item.pdd || 999999,
+    '抖音商城': item.douyin || 999999
+  };
+  const minPrice = Math.min(...Object.values(priceObj));
+  let bestPlatform = '';
+  for (let key in priceObj) {
+    if (priceObj[key] === minPrice) bestPlatform = key;
+  }
+  return {minPrice, bestPlatform};
+}
+
+// 渲染配件列表
+function renderList() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const filterType = document.getElementById('filterType').value;
+  let list = hardwareList;
+
+  // 筛选
+  if (filterType !== 'all') {
+    list = list.filter(i => i.type === filterType);
+  }
+  if (search) {
+    list = list.filter(i => i.name.toLowerCase().includes(search));
+  }
+
+  const container = document.getElementById('hardwareList');
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty">暂无配件数据</div>';
+    return;
+  }
+  let html = '';
+  list.forEach(item => {
+    const {minPrice, bestPlatform} = calcMinPrice(item);
+    const checked = selectedIds.includes(item.id) ? 'checked' : '';
+    html += `
+    <div class="item">
+      <div class="item-top">
+        <span class="tag">${item.type}</span>
+        <span style="font-weight:500">${item.name}</span>
+      </div>
+      <div class="price-row">
+        <span>天猫¥${item.tmall}</span>
+        <span>淘宝¥${item.taobao}</span>
+        <span>京东¥${item.jd}</span>
+        <span>拼多多¥${item.pdd}</span>
+        <span>抖音¥${item.douyin}</span>
+      </div>
+      <div class="best-text">最低价：¥${minPrice}｜最优渠道：${bestPlatform}</div>
+      <div style="margin-top:8px">
+        <input type="checkbox" ${checked} onchange="toggleSelect('${item.id}')">加入整机
+        <button class="btn btn-danger" style="font-size:13px;padding:4px 8px" onclick="deleteItem('${item.id}')">删除</button>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+// 选中/取消选中配件
+function toggleSelect(id) {
+  const idx = selectedIds.indexOf(id);
+  if (idx > -1) selectedIds.splice(idx,1);
+  else selectedIds.push(id);
+  renderList();
+  calcSuiteTotal();
+}
+
+// 删除单条配件
+function deleteItem(id) {
+  hardwareList = hardwareList.filter(i => i.id !== id);
+  selectedIds = selectedIds.filter(i => i !== id);
+  saveData();
+  renderList();
+  calcSuiteTotal();
+}
+
+// 计算整机总价
+function calcSuiteTotal() {
+  const suiteListEl = document.getElementById('suiteList');
+  const totalInfoEl = document.getElementById('totalInfo');
+  const suiteItems = hardwareList.filter(i => selectedIds.includes(i.id));
+  if (suiteItems.length === 0) {
+    suiteListEl.innerHTML = '<div class="empty">请勾选配件加入整机</div>';
+    totalInfoEl.innerHTML = '';
+    return;
+  }
+  let tmallSum = 0, taobaoSum = 0, jdSum = 0, pddSum = 0, douyinSum = 0;
+  let suiteHtml = '';
+  suiteItems.forEach(item => {
+    const {minPrice, bestPlatform} = calcMinPrice(item);
+    tmallSum += Number(item.tmall) || 0;
+    taobaoSum += Number(item.taobao) || 0;
+    jdSum += Number(item.jd) || 0;
+    pddSum += Number(item.pdd) || 0;
+    douyinSum += Number(item.douyin) || 0;
+    suiteHtml += `<div class="suite-item"><span>${item.name}</span><span>最低¥${minPrice}(${bestPlatform})</span></div>`;
+  });
+  suiteListEl.innerHTML = suiteHtml;
+
+  const totalPriceObj = {
+    '天猫': tmallSum,
+    '淘宝': taobaoSum,
+    '京东自营': jdSum,
+    '拼多多': pddSum,
+    '抖音商城': douyinSum
+  };
+  const totalMin = Math.min(...Object.values(totalPriceObj));
+  let bestPlat = '';
+  for (let k in totalPriceObj) {
+    if (totalPriceObj[k] === totalMin) bestPlat = k;
+  }
+  totalInfoEl.innerHTML = `
+    <div class="total-row">天猫整套总价：¥${tmallSum.toFixed(2)}</div>
+    <div class="total-row">淘宝整套总价：¥${taobaoSum.toFixed(2)}</div>
+    <div class="total-row">京东整套总价：¥${jdSum.toFixed(2)}</div>
+    <div class="total-row">拼多多整套总价：¥${pddSum.toFixed(2)}</div>
+    <div class="total-row">抖音整套总价：¥${douyinSum.toFixed(2)}</div>
+    <div class="total-row best-total">整机最低总价：¥${totalMin.toFixed(2)}｜最优渠道：${bestPlat}</div>
+  `;
+}
+
+// 导出CSV表格
+function exportCSV() {
+  const suiteItems = hardwareList.filter(i => selectedIds.includes(i.id));
+  let csv = "配件型号,分类,天猫价,淘宝价,京东价,拼多多价,抖音价,备注\n";
+  suiteItems.forEach(item => {
+    csv += `${item.name},${item.type},${item.tmall},${item.taobao},${item.jd},${item.pdd},${item.douyin},${item.remark}\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '硬件比价表.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 清空整机选择
+function clearSuite() {
+  selectedIds = [];
+  renderList();
+  calcSuiteTotal();
+}
+
+// 清空全部数据
+function clearAllData() {
+  if(confirm('确认清空所有配件数据？无法恢复！')){
+    hardwareList = [];
+    selectedIds = [];
+    saveData();
+    renderList();
+    calcSuiteTotal();
+  }
+}
+
+// 初始化
+window.onload = function() {
+  renderList();
+  calcSuiteTotal();
+};
+</script>
+</body>
+</html>
